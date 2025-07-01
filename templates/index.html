@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Events Monitor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #0366d6;
+        }
+        .event-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .event-item {
+            background-color: #fff;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            transition: all 0.3s;
+        }
+        .event-item:hover {
+            box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+        }
+        .push {
+            border-left: 5px solid #28a745;
+        }
+        .pull-request {
+            border-left: 5px solid #0366d6;
+        }
+        .merge {
+            border-left: 5px solid #6f42c1;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #6a737d;
+            text-align: right;
+        }
+        .no-events {
+            text-align: center;
+            padding: 20px;
+            color: #6a737d;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .loading span {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <h1>GitHub Events Monitor</h1>
+    <div id="events-container">
+        <div class="loading">
+            <span>Loading events...</span>
+        </div>
+    </div>
+
+    <script>
+        // Function to format the timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            
+            // Format date
+            const day = date.getUTCDate();
+            const month = date.toLocaleString('en-US', { month: 'long' });
+            const year = date.getUTCFullYear();
+            
+            // Format time
+            let hours = date.getUTCHours();
+            const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            
+            // Construct suffix for day (1st, 2nd, 3rd, etc.)
+            let suffix = 'th';
+            if (day % 10 === 1 && day !== 11) {
+                suffix = 'st';
+            } else if (day % 10 === 2 && day !== 12) {
+                suffix = 'nd';
+            } else if (day % 10 === 3 && day !== 13) {
+                suffix = 'rd';
+            }
+            
+            return `${day}${suffix} ${month} ${year} - ${hours}:${minutes} ${ampm} UTC`;
+        }
+
+        // Function to create an event message based on the action type
+        function createEventMessage(event) {
+            switch(event.action) {
+                case 'PUSH':
+                    return `"${event.author}" pushed to "${event.to_branch}" on ${formatTimestamp(event.timestamp)}`;
+                case 'PULL_REQUEST':
+                    return `"${event.author}" submitted a pull request from "${event.from_branch}" to "${event.to_branch}" on ${formatTimestamp(event.timestamp)}`;
+                case 'MERGE':
+                    return `"${event.author}" merged branch "${event.from_branch}" to "${event.to_branch}" on ${formatTimestamp(event.timestamp)}`;
+                default:
+                    return `Unknown event by "${event.author}" on ${formatTimestamp(event.timestamp)}`;
+            }
+        }
+
+        // Function to create HTML for the events
+        function renderEvents(events) {
+            const container = document.getElementById('events-container');
+            
+            if (events.length === 0) {
+                container.innerHTML = '<div class="no-events">No events found. Create some activity in the repository!</div>';
+                return;
+            }
+
+            let html = '<ul class="event-list">';
+            
+            events.forEach(event => {
+                const cssClass = event.action === 'PUSH' ? 'push' : 
+                                event.action === 'PULL_REQUEST' ? 'pull-request' : 'merge';
+                                
+                html += `
+                    <li class="event-item ${cssClass.toLowerCase()}">
+                        ${createEventMessage(event)}
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+
+        // Function to fetch events
+        function fetchEvents() {
+            fetch('/api/events')
+                .then(response => response.json())
+                .then(events => {
+                    renderEvents(events);
+                })
+                .catch(error => {
+                    console.error('Error fetching events:', error);
+                    document.getElementById('events-container').innerHTML = 
+                        '<div class="no-events">Error loading events. Please try again later.</div>';
+                });
+        }
+
+        // Initial fetch
+        fetchEvents();
+
+        // Set up polling every 15 seconds
+        setInterval(fetchEvents, 15000);
+    </script>
+</body>
+</html>
