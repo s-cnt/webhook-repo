@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MongoDB Admin View</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .action-push {
+            background-color: #e3f2fd;
+        }
+        .action-pull_request {
+            background-color: #fff3e0;
+        }
+        .action-merge {
+            background-color: #e8f5e9;
+        }
+        .no-events {
+            padding: 20px;
+            text-align: center;
+            background-color: white;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MongoDB Events Admin</h1>
+        <div class="status {% if 'Error' in db_status %}error{% else %}connected{% endif %}">
+            Status: {{ db_status }}
+        </div>
+        
+        {% if events %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Author</th>
+                        <th>Action</th>
+                        <th>From Branch</th>
+                        <th>To Branch</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in events %}
+                        <tr class="action-{{ event.action.lower() if event.action else 'unknown' }}">
+                            <td>{{ event.request_id }}</td>
+                            <td>{{ event.author }}</td>
+                            <td>{{ event.action }}</td>
+                            <td>{{ event.from_branch if event.from_branch else '-' }}</td>
+                            <td>{{ event.to_branch if event.to_branch else '-' }}</td>
+                            <td>{{ event.timestamp }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-events">
+                <p>No events found in the database.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Auto-refresh every 20 seconds
+        setTimeout(function() {
+            location.reload();
+        }, 20000);
+    </script>
+</body>
+</html>

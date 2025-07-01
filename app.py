@@ -117,5 +117,47 @@ def get_events():
     
     return jsonify(latest_events)
 
+@app.route('/api/events')
+def get_all_events():
+    """Return all events from MongoDB as JSON"""
+    # Query the most recent events, limited to 100
+    events_cursor = mongo.db.events.find({}).sort('timestamp', -1).limit(100)
+    
+    # Convert ObjectId to string for JSON serialization
+    events = []
+    for event in events_cursor:
+        event['_id'] = str(event['_id'])
+        events.append(event)
+    
+    return jsonify(events)
+
+@app.route('/admin')
+def admin_view():
+    """Admin interface to view all MongoDB events"""
+    try:
+        # Query all events
+        events_cursor = mongo.db.events.find({}).sort('timestamp', -1)
+        
+        # Convert events for template rendering
+        events = []
+        for event in events_cursor:
+            event['_id'] = str(event['_id'])
+            events.append(event)
+        
+        # Return simple HTML display
+        return render_template('admin.html', events=events, db_status="Connected to MongoDB")
+    except Exception as e:
+        return render_template('admin.html', events=[], db_status=f"Error: {str(e)}")
+
+@app.route('/api/all-events')
+def all_events():
+    """Return all events from MongoDB as raw JSON (for debugging)"""
+    try:
+        events_cursor = mongo.db.events.find({}, {'_id': 0})
+        events = list(events_cursor)
+        return jsonify(events)
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 if __name__ == '__main__':
     app.run(host='localhost', port=int(os.getenv("PORT", 5000)), debug=True)
