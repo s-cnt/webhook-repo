@@ -11,8 +11,24 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configure MongoDB
-app.config["MONGO_URI"] = os.getenv("MONGO_URI", "mongodb://localhost:27017/github_events")
-mongo = PyMongo(app)
+uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/github_events")
+
+# Set the URI in Flask config
+app.config["MONGO_URI"] = uri
+
+# Add error handling for MongoDB connection
+try:
+    # For MongoDB Atlas, use the updated connection string format
+    if "mongodb+srv://" in uri:
+        print(f"Connecting to MongoDB Atlas: {uri.split('@')[1].split('/')[0]}")
+    else:
+        print(f"Connecting to MongoDB: {uri}")
+        
+    mongo = PyMongo(app)
+    print("Successfully connected to MongoDB")
+except Exception as e:
+    print(f"Error connecting to MongoDB: {e}")
+    mongo = None
 
 # Add some sample events for testing
 def add_sample_events():
